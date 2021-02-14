@@ -1,29 +1,86 @@
-import mido
-import pyaudio
-import wave
-from random import randint as r
+import contextlib
 import glob
-from time import sleep
+import math
+import os
+import random
+import re
 import subprocess
+import time
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename
-import os
-import re
+import wave
+
+import mido
+import pyaudio
+
+# Connect your audio interface and Reface DX by USB
+# Ensure you also have Aubio and python-rtmidi installed in your virtual environment
+
+r = random.randint
+sleep = time.sleep
+msg = mido.Message
 
 
+def main():
+    audio_input = CHOOSE_INPUT_DEVICE()
+    port = SETUP_MIDI()
+    print('Choose the audio sample you want to mimic.')
+    Tk().withdraw()
+    audio_file = askopenfilename()
+    duration = GET_AUDIO_FILE_LENGTH(audio_file)
+    audio_file_data = ANALYSE_AUDIO_FILE(audio_file)
+    os.mkdir(audio_file.split('.')[0])
+    os.chdir(audio_file.split('.')[0])
+    INIT_PATCHES()
+    RECORD_PATCHES(port, duration, audio_input)
+    MFCC(audio_file_data)
 
-def setup_midi():
-    all_midi_outputs = mido.get_output_names()
-    if any("reface DX" in s for s in all_midi_outputs):
-        port = mido.open_output("reface DX")
-    else:
-        print("Please connect your Reface DX and try again.")
+
+def CHOOSE_INPUT_DEVICE():
+    p = pyaudio.PyAudio()
+    info = p.get_host_api_info_by_index(0)
+    numdevices = info.get('deviceCount')
+    for i in range(0, numdevices):
+        if (p.get_device_info_by_host_api_device_index(0, i).get('maxInputChannels')) > 0:
+            print("Input Device ID", i, "-",
+                  p.get_device_info_by_host_api_device_index(0, i).get('name'))
+
+    audio_input = int(input('Enter the ID number of the Input Device you want to use. '))
+
+    return audio_input
+
+
+def SETUP_MIDI():
+    try:
+        port = mido.open_output('reface DX')
+        return port
+    except:
+        print('Please connect your Reface DX and try again.')
         quit()
 
 
+def GET_AUDIO_FILE_LENGTH(audio_file):
+    with contextlib.closing(wave.open(audio_file, 'r')) as f:
+        frames = f.getnframes()
+        rate = f.getframerate()
+        duration = round(frames / float(rate), 1)
 
-def init_patches():
-    for patch in range(32):
+    return duration
+
+
+def ANALYSE_AUDIO_FILE(audio_file):
+    analysis = subprocess.run(['aubio', 'mfcc', audio_file],
+                              stdout=subprocess.PIPE).stdout.decode('utf-8').split()
+
+    audio_file_data = []
+    for x in analysis:
+        audio_file_data.append(float(x))
+
+    return audio_file_data
+
+
+def INIT_PATCHES():
+    for x in range(32):
         header = [67, 0, 127, 28, 0, 4, 5, 14, 15, 0, 94]
 
         com = [67, 0, 127, 28, 0, 42, 5, 48, 0, 0, r(32, 126), r(32, 126), r(32, 126), r(32, 126), r(32, 126), r(32, 126), r(32, 126), r(32, 126), r(32, 126), r(32, 126), 0, 0, r(40, 88), r(0, 3), r(0, 127), r(40, 88), r(0, 11), r(0, 7), r(0, 127), r(0, 127), r(0, 127), r(0, 127), r(0, 127), r(0, 127), r(0, 127), r(16, 112), r(16, 112), r(16, 112), r(16, 112), r(0, 7), r(0, 127), r(0, 127), r(0, 7), r(0, 127), r(0, 127), 0, 0, 0]
@@ -38,139 +95,128 @@ def init_patches():
 
         footer = [67, 0, 127, 28, 0, 4, 5, 15, 15, 0, 93]
 
-        voice_syx = [com, op1, op2, op3, op4]
+        voice_settings = [com, op1, op2, op3, op4]
 
-        for syx in voice_syx:
-            data = syx[6:]
-            checksum = (sum(data)) % 128
-            if checksum == 127:
-                checksum = checksum
-            elif checksum == 0:
-                checksum = checksum
+        for y in voice_settings:
+            parameters = y[6:]
+            c_sum = (sum(parameters)) % 128
+            if c_sum == 127:
+                c_sum = c_sum
+            elif c_sum == 0:
+                c_sum = c_sum
             else:   
-                checksum = 128 - checksum
-            syx.append(checksum)
+                c_sum = 128 - c_sum
+            y.append(c_sum)
 
-        header = mido.Message("sysex", data=header)
-        com = mido.Message("sysex", data=com)
-        op1 = mido.Message("sysex", data = op1)
-        op2 = mido.Message("sysex", data = op2)
-        op3 = mido.Message("sysex", data = op3)
-        op4 = mido.Message("sysex", data = op4)
-        footer = mido.Message("sysex", data=footer)
+        header = msg('sysex', data=header)
+        com = msg('sysex', data=com)
+        op1 = msg('sysex', data=op1)
+        op2 = msg('sysex', data=op2)
+        op3 = msg('sysex', data=op3)
+        op4 = msg('sysex', data=op4)
+        footer = msg('sysex', data=footer)
 
-        syx_file = [header, com, op1, op2, op3, op4, footer]
+        sysex_messages = [header, com, op1, op2, op3, op4, footer]
 
-        mido.write_syx_file("patch-" + (str(patch)).zfill(2) + ".syx", syx_file)
-
-
-
-def get_all_syx():
-    all_syx = [s for s in glob.glob("*.syx") if s.startswith("patch")]
-    for syx in all_syx:
-        recorder(syx)
+        mido.write_syx_file('p' + (str(x)).zfill(2) + '.syx', sysex_messages)
 
 
+def RECORD_PATCHES(port, duration, audio_input):
+    patches = [s for s in glob.glob('*.syx') if s.startswith('p')]
 
-def recorder(filename):
-    port = mido.open_output("reface DX")
-    
-    patch = mido.read_syx_file(filename)
+    for x in patches:
+        RECORDER(x, port, duration, audio_input)
 
-    for msg in patch:
-        port.send(msg)
 
-    c3_note = mido.Message("note_on", note=60, velocity=100)
-    c3_note_off = mido.Message("note_off", note=60)
+def RECORDER(x, port, duration, audio_input):
+    patch = mido.read_syx_file(x)
 
-    chunk = 1024  # Record in chunks of 1024 samples
-    sample_format = pyaudio.paInt16  # 16 bits per sample
+    for y in patch:
+        port.send(y)
+
+    note_on = msg('note_on', note=60, velocity=127)
+    note_off = msg('note_off', note=60)
+
+    chunk = 1024
+    sample_format = pyaudio.paInt16
     channels = 1
-    fs = 44100  # Record at 44100 samples per second
-    seconds = 3
-    filename = filename
+    fs = 44100
+    seconds = duration
 
-    p = pyaudio.PyAudio()  # Create an interface to PortAudio
+    p = pyaudio.PyAudio()
 
-    print('Recording')
+    print(f'Recording {x}')
 
     stream = p.open(format=sample_format,
                     channels=channels,
                     rate=fs,
                     frames_per_buffer=chunk,
-                    input=True, input_device_index=2) 
+                    input=True, input_device_index=audio_input)
 
-    frames = []  # Initialize array to store frames
+    frames = []
 
-    port.send(c3_note)
+    port.send(note_on)
 
-# Store data in chunks for 3 seconds
     for i in range(0, int(fs / chunk * seconds)):
         data = stream.read(chunk)
         frames.append(data)
 
-# Stop and close the stream 
     stream.stop_stream()
     stream.close()
-# Terminate the PortAudio interface
+
     p.terminate()
 
-    print('Finished recording')
+    print(f'Finished recording {x}')
 
-# Save the recorded data as a WAV file
-    wf = wave.open(filename.split(".")[0] + ".wav", 'wb')
+    wf = wave.open(x.split('.')[0] + '.wav', 'wb')
     wf.setnchannels(channels)
     wf.setsampwidth(p.get_sample_size(sample_format))
     wf.setframerate(fs)
     wf.writeframes(b''.join(frames))
     wf.close()    
 
-    port.send(c3_note_off)
+    port.send(note_off)
     sleep(1)
 
 
+def MFCC(audio_file_data):
+    print('Comparing generated patches to original audio...')
 
-def mfcc(source_audio):
-    source_output = subprocess.run(["aubio", "mfcc", source_audio], stdout=subprocess.PIPE).stdout.decode('utf-8')
+    wavs = [s for s in glob.glob('*.wav') if s.startswith('p')]
 
-    source_mfcc_values = []
+    for x in wavs:          
+        analysis = subprocess.run(['aubio', 'mfcc', x],
+                                  stdout=subprocess.PIPE).stdout.decode('utf-8').split()
 
-    for value in source_output.split():
-        source_mfcc_values.append(float(value))
-        
-    all_wav = [s for s in glob.glob("*.wav") if s.startswith("patch")]
+        mfcc = []
+        for y in analysis:
+            mfcc.append(float(y))
 
-    for wav in all_wav:          
-        output = subprocess.run(["aubio", "mfcc", wav], stdout=subprocess.PIPE).stdout.decode("utf-8")
-        mfcc_values = []
-        for value in output.split():
-            mfcc_values.append(float(value))
+        similarity = []
+        for z in mfcc:
+            diff = abs(z - audio_file_data[(mfcc.index(z))])
+            similarity.append(diff)
 
-        similarity_score = []
-
-        for data in mfcc_values:
-            difference = abs(data - source_mfcc_values[(mfcc_values.index(data))])
-
-            similarity_score.append(difference)
-
-        if (sum(similarity_score)) / (len(similarity_score)) == 0:
-            avg = 0.0
+        if (sum(similarity)) / (len(similarity)) == 0:
+            avg = 0.00
         else:   
-            avg = round((sum(similarity_score)) / (len(similarity_score)), 2) 
+            avg = round(sum(similarity) / len(similarity), 2) 
    
-        os.rename(wav.split(".")[0] + ".syx", (str(avg).replace(".", "")) + ".syx")
-        os.rename(wav, (str(avg).replace(".", "")) + ".wav")
+        os.rename(x, (str(avg).replace(".", "")).ljust(3, "0") + ".wav")
+        os.rename(x.split(".")[0] + ".syx",
+                  (str(avg).replace(".", "")).ljust(3, "0") + ".syx")
 
-    best_wav()
+    print('Done!')
 
 
-def mutate():   
+'''
+def MUTATE():   
     prev_worst = sorted([s for s in glob.glob("*.syx") if s[0].isnumeric()])[16:]
     
     for i in prev_worst:
         os.remove(i)
      
-    prev_iteration = sorted([s for s in glob.glob("*.syx") if s[0].isnumeric()])[:16]
+    prev_iteration = sorted([s for s in glob.glob("*.syx") if s[0].isnumeric()])
     closest_matches = prev_iteration + prev_iteration
     
     patch_no = -1
@@ -303,27 +349,28 @@ def mutate():
         os.rename(i, "Previous_Iterations/" + i)
 
 
-
-def best_wav():        
+def BEST_MATCHES():        
     prev_iteration = sorted([s for s in glob.glob("*.wav") if s[0].isnumeric()])[:16]
     for wav in prev_iteration:
-        os.rename(wav, "Prev_Wav/" + wav)
+        os.rename(wav, "Best_Audio_Matches/" + wav)
     rest = glob.glob("*.wav")
     for r in rest:
         os.remove(r)
 
 
 os.mkdir("Previous_Iterations")
-os.mkdir("Prev_Wav")
-setup_midi()
-Tk().withdraw()
-source_audio = askopenfilename()
-init_patches()
-get_all_syx()
-mfcc(source_audio)
-mutate()
-
+os.mkdir("Best_Audio_Matches")
+SETUP_MIDI()
+INIT_PATCHES()
+GET_ALL_SYX()
+MFCC(source_audio)
+MUTATE()
 while True:
-    get_all_syx()
-    mfcc(source_audio)
-    mutate()
+    GET_ALL_SYX()
+    MFCC(source_audio)
+    MUTATE()
+
+'''
+
+if __name__ == '__main__':
+    main()
