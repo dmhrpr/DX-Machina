@@ -38,7 +38,7 @@ def main():
     gen = 0
     MUTATE(gen)
 
-    while True():
+    while True:
         gen = gen + 1
         gen_name = str(gen).zfill(4)
         print(f'Start of Generation {gen_name}.\n')
@@ -225,7 +225,7 @@ def MFCC(audio_file_data):
 
 
 def MUTATE(gen):
-    print('Forming new generation...'
+    print('Forming new generation...')
 
     prev_gen_syx = sorted([s for s in glob.glob("*.syx") if s[0].isnumeric()])
     prev_gen_wav = sorted([s for s in glob.glob("*.wav") if s[0].isnumeric()])
