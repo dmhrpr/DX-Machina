@@ -4,8 +4,8 @@ A Python tool which programmes your Yamaha Reface DX to sound like an audio samp
 
 ## Dependencies
 
-- [Mido (pip install mido)](https://pypi.org/project/mido/)
-- [Aubio (pip install aubio)](https://pypi.org/project/aubio/)
-- [Numpy (pip install numpy)](https://pypi.org/project/numpy/)
-- [PyAudio (pip install pyaudio)](https://pypi.org/project/PyAudio/)
-- [python-rtmidi (pip install python-rtmidi)](https://pypi.org/project/python-rtmidi/)
+- [Mido](https://pypi.org/project/mido/) *pip install mido*
+- [Aubio](https://pypi.org/project/aubio/) *pip install aubio*
+- [Numpy](https://pypi.org/project/numpy/) *pip install numpy*
+- [PyAudio](https://pypi.org/project/PyAudio/) *pip install pyaudio*
+- [python-rtmidi](https://pypi.org/project/python-rtmidi/) *pip install python-rtmidi*
