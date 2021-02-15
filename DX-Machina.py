@@ -26,6 +26,7 @@ def main():
     audio_input = CHOOSE_INPUT_DEVICE()
     port = SETUP_MIDI()
     print('Choose the audio sample you want to mimic.')
+    sleep(1)
     Tk().withdraw()
     audio_file = askopenfilename()
     duration = GET_AUDIO_FILE_LENGTH(audio_file)
