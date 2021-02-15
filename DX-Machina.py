@@ -34,6 +34,14 @@ def main():
     INIT_PATCHES()
     RECORD_PATCHES(port, duration, audio_input)
     MFCC(audio_file_data)
+    gen = 0
+    MUTATE(gen)
+
+    while True():
+        RECORD_PATCHES(port, duration, audio_input)
+        MFCC(audio_file_data)
+        gen = gen + 1
+        MUTATE(gen)
 
 
 def CHOOSE_INPUT_DEVICE():
@@ -209,19 +217,18 @@ def MFCC(audio_file_data):
     print('Done!')
 
 
-'''
-def MUTATE():   
-    prev_worst = sorted([s for s in glob.glob("*.syx") if s[0].isnumeric()])[16:]
-    
-    for i in prev_worst:
-        os.remove(i)
-     
-    prev_iteration = sorted([s for s in glob.glob("*.syx") if s[0].isnumeric()])
-    closest_matches = prev_iteration + prev_iteration
+def MUTATE(gen):
+    print('Creating new generation of patches...'
+
+    prev_gen_syx = sorted([s for s in glob.glob("*.syx") if s[0].isnumeric()])
+    prev_gen_wav = sorted([s for s in glob.glob("*.wav") if s[0].isnumeric()])
+
+    best = sorted([s for s in glob.glob("*.syx") if s[0].isnumeric()])[:16]
+    new_gen = best + best
     
     patch_no = -1
 
-    for match in closest_matches:
+    for x in new_gen:
         patch_no = patch_no + 1
         prev_syx_file = mido.read_syx_file(match)[1:6]
 
@@ -343,34 +350,20 @@ def MUTATE():
 
         syx_file = [header, com, op1, op2, op3, op4, footer]
             
-        mido.write_syx_file("patch-" + str(patch_no).zfill(2) + ".syx", syx_file)
-
-    for i in prev_iteration:
-        os.rename(i, "Previous_Iterations/" + i)
+        mido.write_syx_file("p" + str(patch_no).zfill(2) + ".syx", syx_file)
 
 
-def BEST_MATCHES():        
-    prev_iteration = sorted([s for s in glob.glob("*.wav") if s[0].isnumeric()])[:16]
-    for wav in prev_iteration:
-        os.rename(wav, "Best_Audio_Matches/" + wav)
-    rest = glob.glob("*.wav")
-    for r in rest:
-        os.remove(r)
+    new_folder = 'Gen_' + str(gen).zfill(4)
+    os.mkdir(new_folder)
 
+    for i in prev_gen_syx:
+        os.rename(i, new_folder + '/' + i)
 
-os.mkdir("Previous_Iterations")
-os.mkdir("Best_Audio_Matches")
-SETUP_MIDI()
-INIT_PATCHES()
-GET_ALL_SYX()
-MFCC(source_audio)
-MUTATE()
-while True:
-    GET_ALL_SYX()
-    MFCC(source_audio)
-    MUTATE()
+    for i in prev_gen_wav:
+        os.rename(i, new_folder + '/' + i)
 
-'''
+    print('Done!')
+
 
 if __name__ == '__main__':
     main()
