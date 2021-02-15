@@ -230,22 +230,22 @@ def MUTATE(gen):
     prev_gen_syx = sorted([s for s in glob.glob('*.syx') if s[0].isnumeric()])
     prev_gen_wav = sorted([s for s in glob.glob('*.wav') if s[0].isnumeric()])
 
-    best = sorted([s for s in glob.glob('*.syx') if s[0].isnumeric()])[:16]
-    new_gen = best + best
+    best_matches = sorted([s for s in glob.glob('*.syx') if s[0].isnumeric()])[:16]
+    new_gen = best_matches + best_matches
     
     patch_no = -1
 
     for x in new_gen:
         patch_no = patch_no + 1
           
-        prev_syx_file = mido.read_syx_file(x)[1:6]
+        prev_syx = mido.read_syx_file(x)[1:6]
 
         header = [67, 0, 127, 28, 0, 4, 5, 14, 15, 0, 94]
-        com = [int(s) for s in re.findall(r'\b\d+\b', str(prev_syx_file[0])[12:-8])][:-1]
-        op1 = [int(s) for s in re.findall(r'\b\d+\b', str(prev_syx_file[1])[12:-8])][:-1] 
-        op2 = [int(s) for s in re.findall(r'\b\d+\b', str(prev_syx_file[2])[12:-8])][:-1] 
-        op3 = [int(s) for s in re.findall(r'\b\d+\b', str(prev_syx_file[3])[12:-8])][:-1] 
-        op4 = [int(s) for s in re.findall(r'\b\d+\b', str(prev_syx_file[4])[12:-8])][:-1] 
+        com = [int(s) for s in re.findall(r'\b\d+\b', str(prev_syx[0])[12:-8])][:-1]
+        op1 = [int(s) for s in re.findall(r'\b\d+\b', str(prev_syx[1])[12:-8])][:-1] 
+        op2 = [int(s) for s in re.findall(r'\b\d+\b', str(prev_syx[2])[12:-8])][:-1] 
+        op3 = [int(s) for s in re.findall(r'\b\d+\b', str(prev_syx[3])[12:-8])][:-1] 
+        op4 = [int(s) for s in re.findall(r'\b\d+\b', str(prev_syx[4])[12:-8])][:-1] 
         footer = [67, 0, 127, 28, 0, 4, 5, 15, 15, 0, 93]       
 
         com_params = [24, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 40, 41, 43, 44]
@@ -253,11 +253,11 @@ def MUTATE(gen):
         for param in com_params:
             p = com[param]
             if p >= 102:
-                com[param] = (p - 50) + r(0, 50)
+                p = (p - 50) + r(0, 50)
             elif p <= 25:
-                com[param] = p + r(0, 50)
+                p = p + r(0, 50)
             else:
-                com[param] = (p - 25) + r(0, 50)
+                p = (p - 25) + r(0, 50)
 
         com[26] = r(0, 11)
         com[27] = r(0, 7)
@@ -272,11 +272,11 @@ def MUTATE(gen):
             for param in op_params:
                 p = op[param]
                 if p >= 102:
-                    op[param] = (p - 50) + r(0, 50)
+                    p = (p - 50) + r(0, 50)
                 elif p <= 25:
-                    op[param] = p + r(0, 50)
+                    p = p + r(0, 50)
                 else:
-                    op[param] = (p - 25) + r(0, 50)
+                    p = (p - 25) + r(0, 50)
 
             op[22] = r(0, 3)
             op[23] = r(0, 3)
@@ -308,10 +308,8 @@ def MUTATE(gen):
         op4 = msg('sysex', data=op4)
         footer = msg('sysex', data=footer)
 
-        syx_file = [header, com, op1, op2, op3, op4, footer]
-            
-        mido.write_syx_file('p' + str(patch_no).zfill(2) + '.syx', syx_file)
-
+        syxex_messages = [header, com, op1, op2, op3, op4, footer] 
+        mido.write_syx_file('p' + str(patch_no).zfill(2) + '.syx', sysex_messages)
 
     new_folder = 'Gen_' + str(gen).zfill(4)
     os.mkdir(new_folder)
