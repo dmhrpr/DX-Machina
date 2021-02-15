@@ -47,7 +47,7 @@ def main():
         MFCC(audio_file_data)
         MUTATE(gen)
 
-
+        
 def CHOOSE_INPUT_DEVICE():
     p = pyaudio.PyAudio()
     info = p.get_host_api_info_by_index(0)
