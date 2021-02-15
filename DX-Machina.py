@@ -227,10 +227,10 @@ def MFCC(audio_file_data):
 def MUTATE(gen):
     print('Forming new generation...')
 
-    prev_gen_syx = sorted([s for s in glob.glob("*.syx") if s[0].isnumeric()])
-    prev_gen_wav = sorted([s for s in glob.glob("*.wav") if s[0].isnumeric()])
+    prev_gen_syx = sorted([s for s in glob.glob('*.syx') if s[0].isnumeric()])
+    prev_gen_wav = sorted([s for s in glob.glob('*.wav') if s[0].isnumeric()])
 
-    best = sorted([s for s in glob.glob("*.syx") if s[0].isnumeric()])[:16]
+    best = sorted([s for s in glob.glob('*.syx') if s[0].isnumeric()])[:16]
     new_gen = best + best
     
     patch_no = -1
@@ -300,7 +300,7 @@ def MUTATE(gen):
                 c_sum = 128 - c_sum
             y.append(c_sum)
 
-        header = msg("sysex", data=header)
+        header = msg('sysex', data=header)
         com = msg('sysex', data=com)
         op1 = msg('sysex', data=op1)
         op2 = msg('sysex', data=op2)
@@ -310,7 +310,7 @@ def MUTATE(gen):
 
         syx_file = [header, com, op1, op2, op3, op4, footer]
             
-        mido.write_syx_file("p" + str(patch_no).zfill(2) + ".syx", syx_file)
+        mido.write_syx_file('p' + str(patch_no).zfill(2) + '.syx', syx_file)
 
 
     new_folder = 'Gen_' + str(gen).zfill(4)
