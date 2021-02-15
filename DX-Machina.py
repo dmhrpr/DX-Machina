@@ -16,6 +16,7 @@ import pyaudio
 # Connect your audio interface and Reface DX by USB
 # Ensure you also have Aubio and python-rtmidi installed in your virtual environment
 
+
 r = random.randint
 sleep = time.sleep
 msg = mido.Message
@@ -208,11 +209,11 @@ def MFCC(audio_file_data):
         if (sum(similarity)) / (len(similarity)) == 0:
             avg = 0.00
         else:   
-            avg = round(sum(similarity) / len(similarity), 2) 
+            avg = round(sum(similarity) / len(similarity), 3) 
    
-        os.rename(x, (str(avg).replace(".", "")).ljust(3, "0") + ".wav")
+        os.rename(x, (str(avg).replace(".", "")).ljust(4, "0") + ".wav")
         os.rename(x.split(".")[0] + ".syx",
-                  (str(avg).replace(".", "")).ljust(3, "0") + ".syx")
+                  (str(avg).replace(".", "")).ljust(4, "0") + ".syx")
 
     print('Done!')
 
